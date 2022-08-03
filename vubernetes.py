@@ -13,6 +13,7 @@ import yaml
 import networkx as nx
 
 # Global Variables -----------------------------------------------
+PORT = {'color': 'orange', 'shape':'cds'}
 
 # Class Declarations ---------------------------------------------
 class Vubernetes():
@@ -75,9 +76,13 @@ class Vubernetes():
                 G.add_nodes_from([(resourceNodeName, {'color':'blue'})])
                 G.add_edge(app.name, resourceNodeName)
                 if resource.kind == "Service":
-                    portNodeName = f"{resource.spec['ports'][0]['name']} {resource.spec['ports'][0]['port']}"
-                    G.add_nodes_from([(portNodeName, {'color': 'orange', 'shape':'cds'})])
+                    try:
+                        portNodeName = f"{resource.spec['ports'][0]['port']}"
+                    except KeyError:
+                        portNodeName = f"{resource.spec['ports'][0]['port']}"
+                    G.add_nodes_from([(portNodeName, PORT)])
                     G.add_edge(resourceNodeName, portNodeName)
+
                 if resource.kind == "Deployment":
                     try: 
                         volumes = resource.spec['template']['spec']['volumes']
@@ -101,11 +106,19 @@ class Vubernetes():
                                 G.add_edge(volumeMounts[vm]["mountPath"], f"{volumeMounts[vm]['name']} Volume" )
                         except KeyError:
                             pass
+                        try:
+                            containerPorts = containers[c]["ports"]
+                            for cp in range(0, len(containerPorts)):
+                                containerPortName = f"{containerPorts[cp]['containerPort']}"
+                                G.add_nodes_from([(containerPortName, PORT)])
+                                G.add_edge(containerNodeName, containerPortName)
+                        except KeyError:
+                            pass
             # Create legend
             G.add_nodes_from([
                 ("App", {'color':'red', 'shape': 'invtriangle'}), 
                 ("Resource", {'color':'blue'}), 
-                ("Port", {'color': 'orange', 'shape':'cds'}),
+                ("Port", PORT),
                 ("Volume", {'color': 'purple', 'shape':'cylinder'}),
                 ("Container", {'color': 'green', 'shape':'box'}),
                 ("Mount Path", {'color': 'violet', 'shape':'tab'})
@@ -170,7 +183,11 @@ class Definition():
         # Get the app associated with the definition
         if self.kind in ["Deployment", "Service"]:
             self.spec                       = self.jsonDef["spec"]
-            self.appName                    = self.metadata["labels"]["app"]
+            try:
+                self.appName                    = self.metadata["labels"]["app"]
+            except KeyError:
+                self.appName                    = self.spec["selector"]["app"]
+            print(self.appName)
             if self.appManager.checkIfAppExists(self.appName) == False:
                 self.appManager.createApp(self.appName)
             app = self.appManager.getAppByName(self.appName)
