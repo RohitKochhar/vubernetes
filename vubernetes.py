@@ -11,7 +11,6 @@
 # Imports --------------------------------------------------------
 import yaml
 import networkx as nx
-import matplotlib.pyplot as plt
 
 # Global Variables -----------------------------------------------
 
@@ -55,43 +54,67 @@ class Vubernetes():
                             tmpFile.write(f"{parsedLine}\n")
 
     def createAppGraph(self):
-        # Create graph
+        # Create a graph for each app
         for app in self.apps:
-            G = nx.DiGraph()
+            G = nx.DiGraph()    # Graph should be directional
             # Create a master node of the app
-            appNode = G.add_nodes_from([(app.name, {'color': 'red'})])
+            appNode = G.add_nodes_from([(app.name, {'color': 'red', 'shape': 'invtriangle'})])
             resourceCount = {
                 "Deployment": 0,
                 "Service": 0
             }
             for resource in app.resources:
+                # Keep a unique count so that nodes don't double up
                 resourceCount[resource.kind] += 1
                 # Add edge between appNode and resourceNode
                 resourceNodeName = f"{resource.kind} {resourceCount[resource.kind]}"
-                e = G.add_edge(app.name, resourceNodeName)
+                G.add_nodes_from([(resourceNodeName, {'color':'blue'})])
+                G.add_edge(app.name, resourceNodeName)
                 if resource.kind == "Service":
-                    e = G.add_edge(resourceNodeName, f"{resource.spec['ports'][0]['name']} {resource.spec['ports'][0]['port']}")
+                    portNodeName = f"{resource.spec['ports'][0]['name']} {resource.spec['ports'][0]['port']}"
+                    G.add_nodes_from([(portNodeName, {'color': 'orange', 'shape':'cds'})])
+                    G.add_edge(resourceNodeName, portNodeName)
                 if resource.kind == "Deployment":
                     numReplicas = int(resource.spec['replicas'])
                     for i in range(0, numReplicas):
                         try: 
                             volumes = resource.spec['template']['spec']['volumes']
                             for v in range(0, len(volumes)):
-                                e = G.add_edge(resourceNodeName, f"{volumes[v]['name']} Volume")
+                                volumeNodeName = f"{volumes[v]['name']} Volume"
+                                G.add_nodes_from([(volumeNodeName, {'color': 'purple', 'shape':'cylinder'})])
+                                G.add_edge(resourceNodeName, volumeNodeName)
                         except KeyError:
                             pass
                         containers = resource.spec['template']['spec']['containers']
                         for c in range(0, len(containers)):
-                            containerNodeName = f"{containers[c]['name']} Container {resourceCount[resource.kind]}"
-                            e = G.add_edge(resourceNodeName, containerNodeName)
+                            containerNodeName = f"{containers[c]['name']}-{resourceCount[resource.kind]}"
+                            G.add_nodes_from([(containerNodeName, {'color': 'green', 'shape': 'box'})])
+                            G.add_edge(resourceNodeName, containerNodeName)
                             try:
                                 volumeMounts = containers[c]["volumeMounts"]
                                 for vm in range(0, len(volumeMounts)):
-                                    e = G.add_edge(containerNodeName, volumeMounts[vm]["mountPath"])
-                                    e = G.add_edge(volumeMounts[vm]["mountPath"], f"{volumeMounts[vm]['name']} Volume" )
+                                    mountPathNodeName = volumeMounts[vm]["mountPath"]
+                                    G.add_nodes_from([(mountPathNodeName, {'color': 'violet', 'shape':'tab'})])
+                                    G.add_edge(containerNodeName, mountPathNodeName)
+                                    G.add_edge(volumeMounts[vm]["mountPath"], f"{volumeMounts[vm]['name']} Volume" )
                             except KeyError:
                                 pass
-
+            # Create legend
+            G.add_nodes_from([
+                ("App", {'color':'red', 'shape': 'invtriangle'}), 
+                ("Resource", {'color':'blue'}), 
+                ("Port", {'color': 'orange', 'shape':'cds'}),
+                ("Volume", {'color': 'purple', 'shape':'cylinder'}),
+                ("Container", {'color': 'green', 'shape':'box'}),
+                ("Mount Path", {'color': 'violet', 'shape':'tab'})
+            ])
+            G.add_edges_from([
+                ("App", "Resource", {'color': "white"}),
+                ("Resource", "Volume", {'color': "white"}),
+                # ("Volume", "Port", {'color': "white"}),
+                ("Port", "Container", {'color': "white"}),
+                ("Container", "Mount Path", {'color': "white"}),
+            ])
             # same layout using matplotlib with no labels
             p=nx.drawing.nx_pydot.to_pydot(G)
             p.write_png(f'./output/bookinfo_graphs/{app}.png')
