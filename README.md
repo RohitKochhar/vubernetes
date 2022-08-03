@@ -11,11 +11,26 @@ Vubernetes takes in a `.yaml` Kubernetes manifest and generates `.png` files for
 
 #### bookinfo.yaml
 
-`bookinfo.yaml` is created by the developers at Istio as a sample application. Running Vubernetes on `bookinfo.yaml` results in the following images being generated:
+`bookinfo.yaml` is created by the developers at Istio as a sample application. It consists of 4 different microservices:
 
-![detail](/output/bookinfo_graphs/details.png)
+1. Product Page: The `productpage` microservice calls the `details` and `reviews` microservices to populate the page.
+2. Detail: The `details` microservice contains book information.
+3. Reviews: The `reviews` microservice contains book reviews. It also calls the `ratings` microservice.
+    - There are 3 versions of the `reviews` microservice
+      1. Doesn’t call the ratings service.
+      2. Calls the ratings service, and displays each rating as 1 to 5 black stars.
+      3. Calls the ratings service, and displays each rating as 1 to 5 red stars.
+4. Ratings: The `ratings` microservice contains book ranking information that accompanies a book review.
+
+Running Vubernetes on `bookinfo.yaml` results in the following images being generated:
+
+##### Product Page
 ![productpage](/output/bookinfo_graphs/productpage.png)
-![ratings](/output/bookinfo_graphs/ratings.png)
+##### Detail
+![detail](/output/bookinfo_graphs/details.png)
+##### Reviews
 ![reviews](/output/bookinfo_graphs/reviews.png)
+##### Ratings
+![ratings](/output/bookinfo_graphs/ratings.png)
 
 
