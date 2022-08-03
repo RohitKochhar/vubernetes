@@ -19,9 +19,13 @@ from vubernetes import Vubernetes
 
 # Function Declarations ------------------------------------------
 @pytest.mark.basic
-def test_parseYaml():
+def test_bookinfo():
     v = Vubernetes('./test_files/bookinfo.yaml')
-    
+
+@pytest.mark.basic
+def test_grafana():
+    v = Vubernetes('./test_files/grafana.yaml')
+
 
 @pytest.mark.failure
 def test_parseYamlFail():

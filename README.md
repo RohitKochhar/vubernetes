@@ -7,9 +7,9 @@ Still under development
 
 Vubernetes takes in a `.yaml` Kubernetes manifest and generates `.png` files for each app and their allocated resources
 
-### Examples
+## Examples
 
-#### bookinfo.yaml
+### bookinfo.yaml
 
 `bookinfo.yaml` is created by the developers at Istio as a sample application. It consists of 4 different microservices:
 
@@ -24,13 +24,19 @@ Vubernetes takes in a `.yaml` Kubernetes manifest and generates `.png` files for
 
 Running Vubernetes on `bookinfo.yaml` results in the following images being generated:
 
-##### Product Page
+#### Product Page
 ![productpage](/output/bookinfo_graphs/productpage.png)
-##### Detail
+#### Detail
 ![detail](/output/bookinfo_graphs/details.png)
-##### Reviews
+#### Reviews
 ![reviews](/output/bookinfo_graphs/reviews.png)
-##### Ratings
+#### Ratings
 ![ratings](/output/bookinfo_graphs/ratings.png)
 
+### grafana.yaml
 
+`grafana.yaml` is created by the developers at Grafana labs as a manifest to quickly deploy a Grafana dashboard.
+
+Running Vubernetes on `grafana.yaml` results in the following image:
+
+![grafana](/output/grafana_graphs/grafana.png)

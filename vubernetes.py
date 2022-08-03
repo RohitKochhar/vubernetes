@@ -20,6 +20,7 @@ class Vubernetes():
         self.appManager     = AppManager()
         self.apps           = self.appManager.getApps()
         self.filename       = filename
+        self.deploymentName = filename.split("/")[len(filename.split("/")) - 1].split(".")[0]
         self.definitions    = [] 
         self.parseYaml()
         self.createAppGraph()
@@ -75,30 +76,28 @@ class Vubernetes():
                     G.add_nodes_from([(portNodeName, {'color': 'orange', 'shape':'cds'})])
                     G.add_edge(resourceNodeName, portNodeName)
                 if resource.kind == "Deployment":
-                    numReplicas = int(resource.spec['replicas'])
-                    for i in range(0, numReplicas):
-                        try: 
-                            volumes = resource.spec['template']['spec']['volumes']
-                            for v in range(0, len(volumes)):
-                                volumeNodeName = f"{volumes[v]['name']} Volume"
-                                G.add_nodes_from([(volumeNodeName, {'color': 'purple', 'shape':'cylinder'})])
-                                G.add_edge(resourceNodeName, volumeNodeName)
+                    try: 
+                        volumes = resource.spec['template']['spec']['volumes']
+                        for v in range(0, len(volumes)):
+                            volumeNodeName = f"{volumes[v]['name']} Volume"
+                            G.add_nodes_from([(volumeNodeName, {'color': 'purple', 'shape':'cylinder'})])
+                            G.add_edge(resourceNodeName, volumeNodeName)
+                    except KeyError:
+                        pass
+                    containers = resource.spec['template']['spec']['containers']
+                    for c in range(0, len(containers)):
+                        containerNodeName = f"{containers[c]['name']}-{resourceCount[resource.kind]}"
+                        G.add_nodes_from([(containerNodeName, {'color': 'green', 'shape': 'box'})])
+                        G.add_edge(resourceNodeName, containerNodeName)
+                        try:
+                            volumeMounts = containers[c]["volumeMounts"]
+                            for vm in range(0, len(volumeMounts)):
+                                mountPathNodeName = volumeMounts[vm]["mountPath"]
+                                G.add_nodes_from([(mountPathNodeName, {'color': 'violet', 'shape':'tab'})])
+                                G.add_edge(containerNodeName, mountPathNodeName)
+                                G.add_edge(volumeMounts[vm]["mountPath"], f"{volumeMounts[vm]['name']} Volume" )
                         except KeyError:
                             pass
-                        containers = resource.spec['template']['spec']['containers']
-                        for c in range(0, len(containers)):
-                            containerNodeName = f"{containers[c]['name']}-{resourceCount[resource.kind]}"
-                            G.add_nodes_from([(containerNodeName, {'color': 'green', 'shape': 'box'})])
-                            G.add_edge(resourceNodeName, containerNodeName)
-                            try:
-                                volumeMounts = containers[c]["volumeMounts"]
-                                for vm in range(0, len(volumeMounts)):
-                                    mountPathNodeName = volumeMounts[vm]["mountPath"]
-                                    G.add_nodes_from([(mountPathNodeName, {'color': 'violet', 'shape':'tab'})])
-                                    G.add_edge(containerNodeName, mountPathNodeName)
-                                    G.add_edge(volumeMounts[vm]["mountPath"], f"{volumeMounts[vm]['name']} Volume" )
-                            except KeyError:
-                                pass
             # Create legend
             G.add_nodes_from([
                 ("App", {'color':'red', 'shape': 'invtriangle'}), 
@@ -117,7 +116,7 @@ class Vubernetes():
             ])
             # same layout using matplotlib with no labels
             p=nx.drawing.nx_pydot.to_pydot(G)
-            p.write_png(f'./output/bookinfo_graphs/{app}.png')
+            p.write_png(f"./output/{self.deploymentName}_graphs/{app}.png")
         
 
 
