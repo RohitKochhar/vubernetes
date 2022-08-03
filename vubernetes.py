@@ -68,7 +68,10 @@ class Vubernetes():
                 # Keep a unique count so that nodes don't double up
                 resourceCount[resource.kind] += 1
                 # Add edge between appNode and resourceNode
-                resourceNodeName = f"{app.name}-{resource.kind.lower()}-{resourceCount[resource.kind]}"
+                if resource.metadata['name'] == app.name:
+                    resourceNodeName = f"{resource.metadata['name']}-{resource.kind.lower()}"
+                else:
+                    resourceNodeName = f"{resource.metadata['name']}"
                 G.add_nodes_from([(resourceNodeName, {'color':'blue'})])
                 G.add_edge(app.name, resourceNodeName)
                 if resource.kind == "Service":
