@@ -67,7 +67,30 @@ class Vubernetes():
             for resource in app.resources:
                 resourceCount[resource.kind] += 1
                 # Add edge between appNode and resourceNode
-                e = G.add_edge(app.name, f"{app.name} {resource.kind} {resourceCount[resource.kind]}")
+                resourceNodeName = f"{resource.kind} {resourceCount[resource.kind]}"
+                e = G.add_edge(app.name, resourceNodeName)
+                if resource.kind == "Service":
+                    e = G.add_edge(resourceNodeName, f"{resource.spec['ports'][0]['name']} {resource.spec['ports'][0]['port']}")
+                if resource.kind == "Deployment":
+                    numReplicas = int(resource.spec['replicas'])
+                    for i in range(0, numReplicas):
+                        try: 
+                            volumes = resource.spec['template']['spec']['volumes']
+                            for v in range(0, len(volumes)):
+                                e = G.add_edge(resourceNodeName, f"{volumes[v]['name']} Volume")
+                        except KeyError:
+                            pass
+                        containers = resource.spec['template']['spec']['containers']
+                        for c in range(0, len(containers)):
+                            containerNodeName = f"{containers[c]['name']} Container {resourceCount[resource.kind]}"
+                            e = G.add_edge(resourceNodeName, containerNodeName)
+                            try:
+                                volumeMounts = containers[c]["volumeMounts"]
+                                for vm in range(0, len(volumeMounts)):
+                                    e = G.add_edge(containerNodeName, volumeMounts[vm]["mountPath"])
+                                    e = G.add_edge(volumeMounts[vm]["mountPath"], f"{volumeMounts[vm]['name']} Volume" )
+                            except KeyError:
+                                pass
 
             # same layout using matplotlib with no labels
             p=nx.drawing.nx_pydot.to_pydot(G)
@@ -121,6 +144,7 @@ class Definition():
         self.metadata               = self.jsonDef["metadata"]
         # Get the app associated with the definition
         if self.kind in ["Deployment", "Service"]:
+            self.spec                       = self.jsonDef["spec"]
             self.appName                    = self.metadata["labels"]["app"]
             if self.appManager.checkIfAppExists(self.appName) == False:
                 self.appManager.createApp(self.appName)
