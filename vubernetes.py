@@ -56,8 +56,8 @@ class Vubernetes():
 
     def createAppGraph(self):
         # Create graph
-        G = nx.DiGraph()
         for app in self.apps:
+            G = nx.DiGraph()
             # Create a master node of the app
             appNode = G.add_nodes_from([(app.name, {'color': 'red'})])
             resourceCount = {
@@ -69,10 +69,9 @@ class Vubernetes():
                 # Add edge between appNode and resourceNode
                 e = G.add_edge(app.name, f"{app.name} {resource.kind} {resourceCount[resource.kind]}")
 
-        # same layout using matplotlib with no labels
-        nx.planar_layout(G)
-        nx.draw(G, with_labels=True, arrows=True)
-        plt.show()
+            # same layout using matplotlib with no labels
+            p=nx.drawing.nx_pydot.to_pydot(G)
+            p.write_png(f'./output/bookinfo_graphs/{app}.png')
         
 
 
